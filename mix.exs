@@ -1,20 +1,25 @@
 defmodule GCloudex.Mixfile do
   use Mix.Project
 
-  @version "0.4.4"
+  @version "0.4.5"
 
   def project do
     [
-     app: :gcloudex,
-     version: @version,
-     elixir: "~> 1.4",
-     description: "Google Cloud for Elixir. Friendly set of wrappers for "
-                   <> "Google Cloud Platform API's.",
-     build_embedded: Mix.env == :prod,
-     start_permanent: Mix.env == :prod,
-     deps: deps(),
-     package: package()
+      app: :gcloudex,
+      version: @version,
+      elixir: "~> 1.2",
+      description: description(),
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
+      deps: deps(),
+      package: package()
     ]
+  end
+
+  def description() do
+    """
+    Google Cloud for Elixir. Friendly set of wrappers for Google Cloud Platform API's.
+    """
   end
 
   # Configuration for the OTP application
@@ -24,15 +29,6 @@ defmodule GCloudex.Mixfile do
     [applications: [:logger, :httpoison, :goth]]
   end
 
-  # Dependencies can be Hex packages:
-  #
-  #   {:mydep, "~> 0.3.0"}
-  #
-  # Or git/path repositories:
-  #
-  #   {:mydep, git: "https://github.com/elixir-lang/mydep.git", tag: "0.1.0"}
-  #
-  # Type "mix help deps" for more examples and options
   defp deps do
     [
       {:httpoison, "~> 0.11"},
@@ -44,11 +40,11 @@ defmodule GCloudex.Mixfile do
     ]
   end
 
-  defp package do 
+  defp package do
     [
-     maintainers: ["Sasha Fonseca"],
-     licenses: ["Apache 2.0"],
-     links: %{"GitHub" => "https://github.com/sashaafm/gcloudex"}
+      maintainers: ["Iván Jaimes"],
+      licenses: ["Apache 2.0"],
+      links: %{"GitHub" => "https://github.com/iver/gcloudex"}
     ]
   end
 end
