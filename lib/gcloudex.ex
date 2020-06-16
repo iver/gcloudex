@@ -13,9 +13,7 @@ defmodule GCloudex do
     |> decode()
   end
 
-  defp decode(nil) do
-    Application.get_env(:gcs_project)
-  end
+  defp decode(nil), do: Application.get_env(:goth, :gcs_project)
 
   defp decode(input) when is_binary(input) do
     input
