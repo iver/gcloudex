@@ -7,11 +7,10 @@ elixir:
 before_script:
   - mix local.hex --force
   - mix deps.get
+
 script:
   - mix test
-after_script:
-  - mix deps.get
-  - mix inch.report
+
 cache:
   directories:
     - deps
