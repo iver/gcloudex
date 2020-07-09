@@ -19,7 +19,7 @@ GCloudex uses HTTPoison for the HTTP requests, Poison for JSON encoding/decoding
   1. Add gcloudex to your list of dependencies in `mix.exs`:
 ```elixir
     def deps do
-      [{:gcloudex, git: "git@github.com:iver/gcloudex.git"}]
+      [{:gcloudex, github: "iver/gcloudex.git", tag: "0.4.6"}]
     end
 ```
 
