@@ -2,14 +2,16 @@ language: elixir
 elixir:
   - 1.7.4
   - 1.9.2
-  - 1.10.4
 
-before_script:
-  - mix local.hex --force
-  - mix deps.get
+jobs:
+  include:
+    - elixir: '1.10.4'
+      otp_release: '21.0'
 
 script:
-  - mix test
+  - mix local.hex --force
+  - mix deps.get
+  - MIX_ENV=test mix test
 
 cache:
   directories:
