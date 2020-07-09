@@ -1,8 +1,9 @@
 language: elixir
 elixir:
-  - 1.2.3
   - 1.7.4
   - 1.9.2
+  - 1.10.4
+
 before_script:
   - mix local.hex --force
   - mix deps.get

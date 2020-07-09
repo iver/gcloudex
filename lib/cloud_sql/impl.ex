@@ -1,18 +1,17 @@
 defmodule GCloudex.CloudSQL.Impl do
-
   @moduledoc """
-  
+  WIP
   """
 
-  defmacro __using__(:cloud_sql) do 
-    quote do 
+  defmacro __using__(:cloud_sql) do
+    quote do
       use GCloudex.CloudSQL.Request
 
-      @project_id   GCloudex.get_project_id
-      @instance_ep  "https://www.googleapis.com/sql/v1beta4/projects/#{@project_id}/instances"
-      @flag_ep      "https://www.googleapis.com/sql/v1beta4/flags"
+      @project_id GCloudex.get_project_id()
+      @instance_ep "https://www.googleapis.com/sql/v1beta4/projects/#{@project_id}/instances"
+      @flag_ep "https://www.googleapis.com/sql/v1beta4/flags"
       @operation_ep "https://www.googleapis.com/sql/v1beta4/projects/#{@project_id}/operations"
-      @tiers_ep     "https://www.googleapis.com/sql/v1beta4/projects/#{@project_id}/tiers"
+      @tiers_ep "https://www.googleapis.com/sql/v1beta4/projects/#{@project_id}/tiers"
 
       #################
       ### Instances ###
@@ -21,20 +20,20 @@ defmodule GCloudex.CloudSQL.Impl do
       @doc """
       List instances from the project.
       """
-      @spec list_instances() :: HTTPResponse.t
+      @spec list_instances() :: HTTPResponse.t()
       def list_instances do
-        request :get, @instance_ep, [], ""
+        request(:get, @instance_ep, [], "")
       end
 
       @doc """
-      Retrieves a resource containing information about the given 
+      Retrieves a resource containing information about the given
       Cloud SQL 'instance'.
       """
-      @spec get_instance(instance :: binary) :: HTTPResponse.t
+      @spec get_instance(instance :: binary) :: HTTPResponse.t()
       def get_instance(instance) do
-        request_query :get, @instance_ep, [], "", instance
+        request_query(:get, @instance_ep, [], "", instance)
       end
-      
+
       @doc """
       Creates a new Cloud SQL instance with the specified 'name', 'settings',
       'optional_properties' and with the given 'tier' unless already passed through
@@ -42,11 +41,11 @@ defmodule GCloudex.CloudSQL.Impl do
 
       The 'settings' parameter is meant to have the settings JSON nested object
       while 'optional_properties' is meant to have other non-required request
-      fields like the 'replicaConfiguration' JSON nested object field. The 
-      'settings' map will be nested into 'optional_properties' to match the 
+      fields like the 'replicaConfiguration' JSON nested object field. The
+      'settings' map will be nested into 'optional_properties' to match the
       API's request structure like in the following example:
 
-        optional_properties = 
+        optional_properties =
         %{
           name: 'name',
           region: someRegion,
@@ -61,70 +60,82 @@ defmodule GCloudex.CloudSQL.Impl do
 
       TODO: Re-evaluate how the optional fields should be passed.
       """
-      @spec insert_instance(name :: binary, optional_properties :: map, settings :: map, tier :: binary) :: HTTPResponse.t
+      @spec insert_instance(
+              name :: binary,
+              optional_properties :: map,
+              settings :: map,
+              tier :: binary
+            ) :: HTTPResponse.t()
       def insert_instance(name, optional_properties, settings, tier) do
         settings = settings |> Map.put_new(:tier, tier)
-        body     = %{
-          name:     name,
-          settings: settings
-        }
-        |> Map.merge(optional_properties)
-        |> Poison.encode!
 
-        request :post, @instance_ep, [{"Content-Type", "application/json"}], body
+        body =
+          %{
+            name: name,
+            settings: settings
+          }
+          |> Map.merge(optional_properties)
+          |> Poison.encode!()
+
+        request(:post, @instance_ep, [{"Content-Type", "application/json"}], body)
       end
 
       @doc """
       Deletes the given 'instance' from the project.
       """
-      @spec delete_instance(instance :: binary) :: HTTPResponse.t
-      def delete_instance(instance) do 
-        request_query :delete, @instance_ep, [], "", instance
+      @spec delete_instance(instance :: binary) :: HTTPResponse.t()
+      def delete_instance(instance) do
+        request_query(:delete, @instance_ep, [], "", instance)
       end
 
       @doc """
       Clones the given 'instance' and gives the new instance the chosen 'dest_name'
       and the given 'bin_log_file' and 'bin_log_pos'.
       """
-      @spec clone_instance(instance :: binary, dest_name :: binary, bin_log_file :: binary, bin_log_pos :: binary) :: HTTPResponse.t
-      def clone_instance(instance, dest_name, bin_log_file, bin_log_pos) do 
-
+      @spec clone_instance(
+              instance :: binary,
+              dest_name :: binary,
+              bin_log_file :: binary,
+              bin_log_pos :: binary
+            ) :: HTTPResponse.t()
+      def clone_instance(instance, dest_name, bin_log_file, bin_log_pos) do
         bin_log_coords = %{
-          "kind"           => "sql#binLogCoordinates",
+          "kind" => "sql#binLogCoordinates",
           "binLogFileName" => bin_log_file,
           "binLogPosition" => bin_log_pos
         }
-        
+
         clone_context = %{
           "kind" => "sql#cloneContext",
           "destinationInstanceName" => dest_name,
           "binLogCoordinates" => bin_log_coords
         }
 
-        body = %{
-          "cloneContext" => clone_context
-        }
-        |> Poison.encode!
-        
+        body =
+          %{
+            "cloneContext" => clone_context
+          }
+          |> Poison.encode!()
+
         request_query(
           :post,
-           @instance_ep, 
-           [{"Content-Type", "application/json"}], 
-           body, 
-           instance <> "/clone"
+          @instance_ep,
+          [{"Content-Type", "application/json"}],
+          body,
+          instance <> "/clone"
         )
       end
 
       @doc """
       Restarts the given 'instance'.
       """
-      @spec restart_instance(instance :: binary) :: HTTPResponse.t
-      def restart_instance(instance) do 
+      @spec restart_instance(instance :: binary) :: HTTPResponse.t()
+      def restart_instance(instance) do
         request_query(
-          :post, 
-          @instance_ep, 
-          [{"Content-Type", "application/json"}], 
-          "", 
+          :post,
+          @instance_ep,
+          [{"Content-Type", "application/json"}],
+          "",
           instance <> "/" <> "restart"
         )
       end
@@ -132,8 +143,8 @@ defmodule GCloudex.CloudSQL.Impl do
       @doc """
       Starts the replication in the read replica 'instance'.
       """
-      @spec start_replica(instance :: binary) :: HTTPResponse.t
-      def start_replica(instance) do 
+      @spec start_replica(instance :: binary) :: HTTPResponse.t()
+      def start_replica(instance) do
         request_query(
           :post,
           @instance_ep,
@@ -146,8 +157,8 @@ defmodule GCloudex.CloudSQL.Impl do
       @doc """
       Stops the replication in the read replica 'instance'.
       """
-      @spec stop_replica(instance :: binary) :: HTTPResponse.t  
-      def stop_replica(instance) do 
+      @spec stop_replica(instance :: binary) :: HTTPResponse.t()
+      def stop_replica(instance) do
         request_query(
           :post,
           @instance_ep,
@@ -160,8 +171,8 @@ defmodule GCloudex.CloudSQL.Impl do
       @doc """
       Promotes the read replica 'instance' to be a stand-alone Cloud SQL instance.
       """
-      @spec promote_replica(instance :: binary) :: HTTPResponse.t
-      def promote_replica(instance) do 
+      @spec promote_replica(instance :: binary) :: HTTPResponse.t()
+      def promote_replica(instance) do
         request_query(
           :post,
           @instance_ep,
@@ -175,16 +186,18 @@ defmodule GCloudex.CloudSQL.Impl do
       Failover the 'instance' to its failover replica instance with the 
       specified 'settings_version'.
       """
-      @spec failover_instance(instance :: binary, settings_version :: number) :: HTTPResponse.t
-      def failover_instance(instance, settings_version) do 
+      @spec failover_instance(instance :: binary, settings_version :: number) :: HTTPResponse.t()
+      def failover_instance(instance, settings_version) do
         failover = %{
-          "kind"            => "sql#failoverContext",
+          "kind" => "sql#failoverContext",
           "settingsVersion" => settings_version
         }
 
-        body     = %{
-          "failoverContext" => failover
-        } |> Poison.encode!
+        body =
+          %{
+            "failoverContext" => failover
+          }
+          |> Poison.encode!()
 
         request_query(
           :post,
@@ -203,8 +216,8 @@ defmodule GCloudex.CloudSQL.Impl do
       instance is restarted. For Second Generation instances, the changes are
       immediate; all existing connections to the instance are broken.
       """
-      @spec reset_ssl_config(instance :: binary) :: HTTPResponse.t
-      def reset_ssl_config(instance) do 
+      @spec reset_ssl_config(instance :: binary) :: HTTPResponse.t()
+      def reset_ssl_config(instance) do
         request_query(
           :post,
           @instance_ep,
@@ -221,26 +234,28 @@ defmodule GCloudex.CloudSQL.Impl do
       @doc """
       Lists databases in the specified Cloud SQL 'instance'.
       """
-      @spec list_databases(instance :: binary) :: HTTPResponse.t
-      def list_databases(instance) do 
-        request_query :get, @instance_ep, [], "", instance <> "/databases"
+      @spec list_databases(instance :: binary) :: HTTPResponse.t()
+      def list_databases(instance) do
+        request_query(:get, @instance_ep, [], "", instance <> "/databases")
       end
 
       @doc """
       Creates a new database inside the specified Cloud SQL 'instance' with the 
       given 'name'.
       """
-      @spec insert_database(instance :: binary, name :: binary) :: HTTPResponse.t
+      @spec insert_database(instance :: binary, name :: binary) :: HTTPResponse.t()
       def insert_database(instance, name) do
-        body = %{
-          "instance" => instance,
-          "name"     => name,
-          "project"  => @project_id
-        } |> Poison.encode!
-        
+        body =
+          %{
+            "instance" => instance,
+            "name" => name,
+            "project" => @project_id
+          }
+          |> Poison.encode!()
+
         request_query(
           :post,
-          @instance_ep, 
+          @instance_ep,
           [{"Content-Type", "application/json"}],
           body,
           instance <> "/databases"
@@ -251,13 +266,13 @@ defmodule GCloudex.CloudSQL.Impl do
       Retrieves a resource containing information about the 'database' inside a
       Cloud SQL 'instance'.
       """
-      @spec get_database(instance :: binary, database :: binary) :: HTTPResponse.t
-      def get_database(instance, database) do 
+      @spec get_database(instance :: binary, database :: binary) :: HTTPResponse.t()
+      def get_database(instance, database) do
         request_query(
-          :get, 
-          @instance_ep, 
-          [], 
-          "", 
+          :get,
+          @instance_ep,
+          [],
+          "",
           instance <> "/databases" <> "/" <> database
         )
       end
@@ -265,13 +280,13 @@ defmodule GCloudex.CloudSQL.Impl do
       @doc """
       Deletes the 'database' from the Cloud SQL 'instance'.
       """
-      @spec delete_database(instance :: binary, database :: binary) :: HTTPResponse.t
-      def delete_database(instance, database) do 
+      @spec delete_database(instance :: binary, database :: binary) :: HTTPResponse.t()
+      def delete_database(instance, database) do
         request_query(
-          :delete, 
-          @instance_ep, 
-          [], 
-          "", 
+          :delete,
+          @instance_ep,
+          [],
+          "",
           instance <> "/databases" <> "/" <> database
         )
       end
@@ -282,14 +297,15 @@ defmodule GCloudex.CloudSQL.Impl do
       the description of Database Resources in:
         https://cloud.google.com/sql/docs/admin-api/v1beta4/databases#resource
       """
-      @spec patch_database(instance :: binary, database :: binary, db_resource :: Map.t) :: HTTPResponse.t
+      @spec patch_database(instance :: binary, database :: binary, db_resource :: Map.t()) ::
+              HTTPResponse.t()
       def patch_database(instance, database, db_resource) do
-        body = db_resource |> Poison.encode!
+        body = db_resource |> Poison.encode!()
 
         request_query(
           :patch,
-          @instance_ep, 
-          [{"Content-Type", "application/json"}], 
+          @instance_ep,
+          [{"Content-Type", "application/json"}],
           body,
           instance <> "/databases" <> "/" <> database
         )
@@ -299,9 +315,10 @@ defmodule GCloudex.CloudSQL.Impl do
       Updates a resource containing information about a 'database' inside a 
       Cloud SQL 'instance'. The 'update_map' must be a Map.
       """
-      @spec update_database(instance :: binary, database :: binary, db_resource :: Map.t) :: HTTPResponse.t
-      def update_database(instance, database, db_resource) do 
-        body = db_resource |> Poison.encode!
+      @spec update_database(instance :: binary, database :: binary, db_resource :: Map.t()) ::
+              HTTPResponse.t()
+      def update_database(instance, database, db_resource) do
+        body = db_resource |> Poison.encode!()
 
         request_query(
           :put,
@@ -319,9 +336,9 @@ defmodule GCloudex.CloudSQL.Impl do
       @doc """
       List all available database flags for Google the Cloud SQL 'instance'.
       """
-      @spec list_flags :: HTTPResponse.t
-      def list_flags do 
-        request :get, @flag_ep, [], "" 
+      @spec list_flags :: HTTPResponse.t()
+      def list_flags do
+        request(:get, @flag_ep, [], "")
       end
 
       ##################
@@ -332,8 +349,8 @@ defmodule GCloudex.CloudSQL.Impl do
       Lists all instance operations that have been performed on the given 
       Cloud SQL 'instance' in the reverse chronological order of the start time.
       """
-      @spec list_operations(instance :: binary) :: HTTPResponse.t
-      def list_operations(instance) do 
+      @spec list_operations(instance :: binary) :: HTTPResponse.t()
+      def list_operations(instance) do
         request(
           :get,
           @operation_ep <> "?" <> "instance=#{instance}",
@@ -346,11 +363,11 @@ defmodule GCloudex.CloudSQL.Impl do
       Retrieves the instance operation with 'operation_id' that has been 
       performed on an instance.
       """
-      @spec get_operation(operation_id :: binary) :: HTTPResponse.t
-      def get_operation(operation_id) do 
+      @spec get_operation(operation_id :: binary) :: HTTPResponse.t()
+      def get_operation(operation_id) do
         request_query(
           :get,
-          @operation_ep, 
+          @operation_ep,
           [],
           "",
           operation_id
@@ -364,10 +381,10 @@ defmodule GCloudex.CloudSQL.Impl do
       @doc """
       Lists all available service tiers for Google Cloud SQL, for example D1, D2. 
       """
-      @spec list_tiers :: HTTPResponse.t
-      def list_tiers do 
-        request :get, @tiers_ep, [], ""
-      end 
+      @spec list_tiers :: HTTPResponse.t()
+      def list_tiers do
+        request(:get, @tiers_ep, [], "")
+      end
 
       #############
       ### Users ###
@@ -376,10 +393,10 @@ defmodule GCloudex.CloudSQL.Impl do
       @doc """
       Lists users in the specified Cloud SQL 'instance'.
       """
-      @spec list_users(instance :: binary) :: HTTPResponse.t
-      def list_users(instance) do 
+      @spec list_users(instance :: binary) :: HTTPResponse.t()
+      def list_users(instance) do
         request_query(
-          :get, 
+          :get,
           @instance_ep,
           [],
           "",
@@ -392,15 +409,18 @@ defmodule GCloudex.CloudSQL.Impl do
       'password'. The authorized host to connect can be set through 'host'
       (defaults to '% (any host)').
       """
-      @spec insert_user(instance :: binary, name :: binary, password :: binary, host :: binary) :: HTTPResponse.t
-      def insert_user(instance, name, password, host \\ "%") do 
-        body = %{
-          "name"     => name,
-          "password" => password,
-          "host"     => host,
-          "project"  => @project_id,
-          "instance" => instance
-        } |> Poison.encode!
+      @spec insert_user(instance :: binary, name :: binary, password :: binary, host :: binary) ::
+              HTTPResponse.t()
+      def insert_user(instance, name, password, host \\ "%") do
+        body =
+          %{
+            "name" => name,
+            "password" => password,
+            "host" => host,
+            "project" => @project_id,
+            "instance" => instance
+          }
+          |> Poison.encode!()
 
         request_query(
           :post,
@@ -415,9 +435,10 @@ defmodule GCloudex.CloudSQL.Impl do
       Updates an existing user in a Cloud SQL 'instance' with the given 'host',
       'name' and 'password'.
       """
-      @spec update_user(instance :: binary, host :: binary, name :: binary, password :: binary) :: HTTPResponse.t
-      def update_user(instance, host, name, password) do 
-        body  = %{"password" => password} |> Poison.encode!
+      @spec update_user(instance :: binary, host :: binary, name :: binary, password :: binary) ::
+              HTTPResponse.t()
+      def update_user(instance, host, name, password) do
+        body = %{"password" => password} |> Poison.encode!()
         query = "#{instance}/users?host=#{host}&name=#{name}"
 
         request_query(
@@ -432,8 +453,8 @@ defmodule GCloudex.CloudSQL.Impl do
       @doc """
       Deletes a user with the given 'host' and 'name' from the Cloud SQL 'instance'.
       """
-      @spec delete_user(instance :: binary, host :: binary, name :: binary) :: HTTPResponse.t
-      def delete_user(instance, host, name) do 
+      @spec delete_user(instance :: binary, host :: binary, name :: binary) :: HTTPResponse.t()
+      def delete_user(instance, host, name) do
         query = "#{instance}/users?host=#{host}&name=#{name}"
 
         request_query(
@@ -453,8 +474,8 @@ defmodule GCloudex.CloudSQL.Impl do
       Lists all backup runs associated with a given 'instance' and configuration 
       in the reverse chronological order of the backup initiation time.
       """
-      @spec list_backup_runs(instance :: binary) :: HTTPResponse.t
-      def list_backup_runs(instance) do 
+      @spec list_backup_runs(instance :: binary) :: HTTPResponse.t()
+      def list_backup_runs(instance) do
         request_query(
           :get,
           @instance_ep,
@@ -468,12 +489,12 @@ defmodule GCloudex.CloudSQL.Impl do
       Retrieves a resource containing information about a backup run with the ID
       of 'run_id' and belonging to the given 'instance'.
       """
-      @spec get_backup_run(instance :: binary, run_id :: binary | number) :: HTTPResponse.t
-      def get_backup_run(instance, run_id) do 
-        gbr instance, run_id
+      @spec get_backup_run(instance :: binary, run_id :: binary | number) :: HTTPResponse.t()
+      def get_backup_run(instance, run_id) do
+        gbr(instance, run_id)
       end
 
-      defp gbr(instance, run_id) when is_integer(run_id) do 
+      defp gbr(instance, run_id) when is_integer(run_id) do
         request_query(
           :get,
           @instance_ep,
@@ -483,7 +504,7 @@ defmodule GCloudex.CloudSQL.Impl do
         )
       end
 
-      defp gbr(instance, run_id) do 
+      defp gbr(instance, run_id) do
         request_query(
           :get,
           @instance_ep,
@@ -497,12 +518,12 @@ defmodule GCloudex.CloudSQL.Impl do
       Deletes the backup taken by a backup run with ID 'run_id' and belonging to 
       the given 'instance'. 
       """
-      @spec delete_backup_run(instance :: binary, run_id :: binary | number) :: HTTPResponse.t
-      def delete_backup_run(instance, run_id) do 
-        dbr instance, run_id
+      @spec delete_backup_run(instance :: binary, run_id :: binary | number) :: HTTPResponse.t()
+      def delete_backup_run(instance, run_id) do
+        dbr(instance, run_id)
       end
 
-      defp dbr(instance, run_id) when is_integer(run_id) do 
+      defp dbr(instance, run_id) when is_integer(run_id) do
         request_query(
           :delete,
           @instance_ep,
@@ -512,7 +533,7 @@ defmodule GCloudex.CloudSQL.Impl do
         )
       end
 
-      defp dbr(instance, run_id) do 
+      defp dbr(instance, run_id) do
         request_query(
           :delete,
           @instance_ep,
@@ -529,8 +550,8 @@ defmodule GCloudex.CloudSQL.Impl do
       @doc """
       Lists all of the current SSL certificates for the 'instance'.
       """
-      @spec list_ssl_certs(instance :: binary) :: HTTPResponse.t
-      def list_ssl_certs(instance) do 
+      @spec list_ssl_certs(instance :: binary) :: HTTPResponse.t()
+      def list_ssl_certs(instance) do
         request_query(
           :get,
           @instance_ep,
@@ -546,8 +567,8 @@ defmodule GCloudex.CloudSQL.Impl do
       (required for usage). The private key must be saved from the response 
       to initial creation.
       """
-      @spec get_ssl_cert(instance :: binary, sh1_fingerprint :: binary) :: HTTPResponse.t
-      def get_ssl_cert(instance, sha1_fingerprint) do 
+      @spec get_ssl_cert(instance :: binary, sh1_fingerprint :: binary) :: HTTPResponse.t()
+      def get_ssl_cert(instance, sha1_fingerprint) do
         request_query(
           :get,
           @instance_ep,
@@ -565,9 +586,9 @@ defmodule GCloudex.CloudSQL.Impl do
       For First Generation instances, the new certificate does not take effect 
       until the instance is restarted.
       """
-      @spec insert_ssl_cert(instance :: binary, common_name :: binary) :: HTTPResponse.t
-      def insert_ssl_cert(instance, common_name) do 
-        body = %{"commonName" => common_name} |> Poison.encode!
+      @spec insert_ssl_cert(instance :: binary, common_name :: binary) :: HTTPResponse.t()
+      def insert_ssl_cert(instance, common_name) do
+        body = %{"commonName" => common_name} |> Poison.encode!()
 
         request_query(
           :post,
@@ -579,11 +600,11 @@ defmodule GCloudex.CloudSQL.Impl do
       end
 
       @doc """
-      Deletes the SSL certificate with the given 'sha1_fingerprint' from the 
+      Deletes the SSL certificate with the given 'sha1_fingerprint' from the
       specified 'instance'.
       """
-      @spec delete_ssl_cert(instance :: binary, sha1_fingerprint :: binary) :: HTTPResponse.t
-      def delete_ssl_cert(instance, sha1_fingerprint) do 
+      @spec delete_ssl_cert(instance :: binary, sha1_fingerprint :: binary) :: HTTPResponse.t()
+      def delete_ssl_cert(instance, sha1_fingerprint) do
         request_query(
           :delete,
           @instance_ep,
@@ -594,13 +615,14 @@ defmodule GCloudex.CloudSQL.Impl do
       end
 
       @doc """
-      Generates a short-lived X509 certificate containing the provided 'public_key' 
-      and signed by a private key specific to the target 'instance'. Users may use 
+      Generates a short-lived X509 certificate containing the provided 'public_key'
+      and signed by a private key specific to the target 'instance'. Users may use
       the certificate to authenticate as themselves when connecting to the database.
       """
-      @spec create_ephemeral_ssl_cert(instance :: binary, public_key :: binary) :: HTTPResponse.t
-      def create_ephemeral_ssl_cert(instance, public_key) do 
-        body = %{"public_key" => public_key} |> Poison.encode!
+      @spec create_ephemeral_ssl_cert(instance :: binary, public_key :: binary) ::
+              HTTPResponse.t()
+      def create_ephemeral_ssl_cert(instance, public_key) do
+        body = %{"public_key" => public_key} |> Poison.encode!()
 
         request_query(
           :post,
